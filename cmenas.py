@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 class cmenas:
     def __init__(self, k):
@@ -14,25 +15,31 @@ class cmenas:
         # MAX : numero maximo de epocas
         # tol : tolerancia da funcao de custo
         num_amostras, num_atributos = data.shape
-        #STEP 1: initialize U and normalize
-        self.U = np.random.uniform(size = (num_amostras, self.k))
-        self.U = self.U / self.U.sum(axis = 1)[:, np.newaxis]
+        #STEP 1: initialize U and normalize / initialize centers
+        # self.U = np.random.uniform(size = (num_amostras, self.k))
+        # self.U = self.U / self.U.sum(axis = 1)[:, np.newaxis]
+        index = np.random.choice(a = num_amostras, size = self.k, 
+                                 replace = False)
+        self.centros = data[index, :]
+        #add noisy
+        self.centros += np.random.normal(size = self.centros.shape) * 0.001
         #iteration
         stop = False
         ite = 0
         while (stop == False):
-            #STEP 2: calculate centers, m is often 2 so..
-            self.centros = self.calc_centros(data = data, U = self.U, 
-                                             k = self.k, m = 2)
-            #STEP 3: now, calculate cost function
-            J = self.comp_cost(data = data, U = self.U, c = self.k, 
-                               centros = self.centros, m = 2)
+            start_time = time.time()
             #STEP 4: compute new U
             self.U = self.comp_memb(data = data, c = self.k, 
                                     centros = self.centros, m = 2)
+            #STEP 3: now, calculate cost function
+            J = self.comp_cost(data = data, U = self.U, c = self.k, 
+                               centros = self.centros, m = 2)
+            #STEP 2: calculate centers, m is often 2 so..
+            self.centros = self.calc_centros(data = data, U = self.U, 
+                                             k = self.k, m = 2)
             #condicao de parada
-            print(ite, J)
             ite += 1
+            print(ite, J, time.time() - start_time)
             if (ite >= MAX or tol > J): stop = True
     
     def calc_centros(self, data, U, k, m):
@@ -81,6 +88,6 @@ class cmenas:
                     ck = centros[k, :]
                     dij = np.linalg.norm(ci - x)
                     dkj = np.linalg.norm(ck - x)
-                    den += (dij / dkj) ** (2 / (m - 1))
+                    den += (dij / dkj) ** (1 / (m - 1))
                 U[j, i] = num / den
         return U
