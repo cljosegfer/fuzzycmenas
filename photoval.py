@@ -8,7 +8,7 @@ from norm import normalize, denormalize
 file_seq = ['photo001.jpg', 'photo002.jpg', 'photo003.jpg', 'photo004.jpg',
             'photo005.jpg', 'photo006.jpg', 'photo007.jpg', 'photo008.jpg',
             'photo009.jpg', 'photo010.jpg', 'photo011.png']
-for ind in range(len(k_seq)):
+for ind in range(len(file_seq)):
     # filename = 'photo005.jpg'
     filename = file_seq[ind]
     photo = photo_open(filename = 'ImagensTeste/' + filename)
