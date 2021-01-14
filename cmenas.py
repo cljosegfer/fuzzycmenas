@@ -2,92 +2,74 @@ import numpy as np
 import time
 
 class cmenas:
-    def __init__(self, k):
+    def __init__(self, k, m = 2):
         # k : numero de clusters
-        # centros : matriz q guarda o espaco dos centros
+        # C : matriz q guarda o espaco dos centros
         # U : matriz q mapeia as amostras nos grupos
+        # J : funcao objetiva, de custo
+        # m : parametro expoente de peso, normalmente usa-se m = 2
         self.k = k
-        self.centros = np.array([])
+        self.C = np.array([])
         self.U = np.array([])
-    
-    def train(self, data, MAX, tol):
+        self.J = 0
+        self.m = m
+
+    def train(self, data, MAX, tol, log = True):
         # data : conjunto de treinamento
         # MAX : numero maximo de epocas
         # tol : tolerancia da funcao de custo
         num_amostras, num_atributos = data.shape
-        #STEP 1: initialize U and normalize / initialize centers
-        # self.U = np.random.uniform(size = (num_amostras, self.k))
-        # self.U = self.U / self.U.sum(axis = 1)[:, np.newaxis]
+        #STEP 1: initialize random centers and add noisy
         index = np.random.choice(a = num_amostras, size = self.k, 
                                  replace = False)
-        self.centros = data[index, :]
-        #add noisy
-        self.centros += np.random.normal(size = self.centros.shape) * 0.001
+        self.C = data[index, :]
+        self.C += np.random.normal(size = self.C.shape) * 0.001
         #iteration
-        stop = False
         ite = 0
-        while (stop == False):
+        self.J = 1e5 + tol
+        while (True):
             start_time = time.time()
-            #STEP 4: compute new U
-            self.U = self.comp_memb(data = data, c = self.k, 
-                                    centros = self.centros, m = 2)
-            #STEP 3: now, calculate cost function
-            J = self.comp_cost(data = data, U = self.U, c = self.k, 
-                               centros = self.centros, m = 2)
-            #STEP 2: calculate centers, m is often 2 so..
-            self.centros = self.calc_centros(data = data, U = self.U, 
-                                             k = self.k, m = 2)
+            #STEP 2: compute distance matrix D and new U
+            D = self.calc_dist(data = data, C = self.C)
+            self.U = self.calc_memb(data = data, D = D, k = self.k, 
+                                    m = self.m)
+            #STEP 3: calculate cost function
+            J_old = self.J
+            self.J = self.calc_cost(U = self.U, D = D, m = self.m)
+            #STEP 4: calculate centers
+            self.centros = self.calc_cent(data = data, U = self.U, k = self.k,
+                                          m = self.m)
             #condicao de parada
             ite += 1
-            print(ite, J, time.time() - start_time)
-            if (ite >= MAX or tol > J): stop = True
-    
-    def calc_centros(self, data, U, k, m):
-        n, num_atributos = data.shape
-        centros = np.zeros([k, num_atributos])
-        #equation 15.8
+            deltat = time.time() - start_time
+            if (log): print(ite, 'loss:', self.J, 'duration:', deltat)
+            if (ite >= MAX or tol > abs(self.J - J_old)): break
+
+    def calc_dist(self, data, C):
+        #dij = euclidean distance(ci - xj)
+        D = np.einsum('ijk->ij',(C - data[:, np.newaxis, :]) ** 2)
+        return np.sqrt(D)
+
+    def calc_memb(self, data, D, k, m):
+        #equation 15.9: uij = 1 / sum((dij / dkj) ^ (2 / (m - 1)))
+        num_amostras, num_atributos = data.shape
+        U = np.zeros([num_amostras, k])
         for i in range(k):
-            num = 0
-            den = 0
-            for j in range(n):
-                u = U[j, i]
-                x = data[j, :]
-                num += (u ** m) * x
-                den += u ** m
-            centros[i, :] = num / den
-        return centros
-    
-    def comp_cost(self, data, U, c, centros, m):
-        n, num_atributos = data.shape
-        #equation 15.6
-        J = 0
-        for i in range(c):
-            Ji = 0
-            for j in range(n):
-                u = U[j, i]
-                x = data[j, :]
-                ci = centros[i, :]
-                d = np.linalg.norm(ci - x)
-                Ji += (u ** m) * d
-            J += Ji
-        #i think this makes sense, idk
-        J = J / n / c
-        return J
-    
-    def comp_memb(self, data, c, centros, m):
-        n, num_atributos = data.shape
-        #equation 15.9
-        U = np.zeros([n, c])
-        for i in range(c):
-            for j in range(n):
-                num = 1
-                den = 0
-                for k in range(c):
-                    x = data[j, :]
-                    ci = centros[i, :]
-                    ck = centros[k, :]
-                    dij = np.linalg.norm(ci - x)
-                    dkj = np.linalg.norm(ck - x)
-                    den += (dij / dkj) ** (1 / (m - 1))
-                U[j, i] = num / den
+            dij = D[:, i]
+            u = np.zeros([num_amostras, 1])
+            for kk in range(k):
+                dkj = D[:, kk]
+                u += (dij / dkj).reshape(-1, 1) ** (2 / (m - 1))
+            U[:, i:i+1] = 1 / u
         return U
+
+    def calc_cost(self, U, D, m):
+        #equation 15.6: J = sum(sum(uij ^ m * dij ^ 2))
+        J = (U ** m * D ** 2).sum()
+        return J
+
+    def calc_cent(self, data, U, k, m):
+        #equation 15.8: ci = sum(uij ^ m * xj) / sum(uij ^ m)
+        C = np.matmul(np.transpose(U ** m), data)
+        C /= np.sum(U ** m, axis = 0).reshape(-1, 1)
+        return C
