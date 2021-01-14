@@ -4,7 +4,7 @@ from manipulacao import photo_open, pick_pixels, coloring
 from norm import normalize, denormalize
 
 #leitura de dados
-filename = 'photo006.jpg'
+filename = 'photo005.jpg'
 photo = photo_open(filename = 'ImagensTeste/' + filename)
 pixels = pick_pixels(photo = photo)
 #normalizacao
