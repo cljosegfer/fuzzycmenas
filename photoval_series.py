@@ -37,7 +37,7 @@ for image in range(len(file_seq)):
                 pertinencia = np.zeros(model.U.shape)
                 pertinencia[range(len(model.U)), model.U.argmax(1)] = 1
                 pertinencia = np.array(pertinencia, dtype = bool)
-                centros = model.centros
+                centros = model.C
         
         # print(loss_vector.argmin(), loss_vector.min())
         #denormalizacao

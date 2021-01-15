@@ -13,12 +13,13 @@ data, minimum, maximum = normalize(data = data)
 k = 4
 model = cmenas(k = k)
 MAX = 15
-tol = 0.01
+tol = 1e-2
 model.train(data = data, MAX = MAX, tol = tol)
+centros = model.C
 
 #denormalizacao
 data = denormalize(data = data, m = minimum, M = maximum)
-centros = denormalize(data = model.centros, m = minimum, M = maximum)
+centros = denormalize(data = centros, m = minimum, M = maximum)
 # print(centros)
 
 #plot

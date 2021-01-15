@@ -37,8 +37,8 @@ class cmenas:
             J_old = self.J
             self.J = self.calc_cost(U = self.U, D = D, m = self.m)
             #STEP 4: calculate centers
-            self.centros = self.calc_cent(data = data, U = self.U, k = self.k,
-                                          m = self.m)
+            self.C = self.calc_cent(data = data, U = self.U, k = self.k, 
+                                    m = self.m)
             #condicao de parada
             ite += 1
             deltat = time.time() - start_time

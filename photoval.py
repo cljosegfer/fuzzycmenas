@@ -11,20 +11,20 @@ pixels = pick_pixels(photo = photo)
 data, minimum, maximum = normalize(pixels)
 
 #cmeans
-k = 20
+k = 25
 model = cmenas(k = k)
 MAX = 25
-tol = 0.0001
+tol = 1e-2
 model.train(data = data, MAX = MAX, tol = tol)
 
 #get layers (boolean) and centers
 pertinencia = np.zeros(model.U.shape)
 pertinencia[range(len(model.U)), model.U.argmax(1)] = 1 #max column is True
 pertinencia = np.array(pertinencia, dtype = bool)
-centros = model.centros
+centros = model.C
 
 #denormalizacao
-centros = denormalize(data = model.centros, m = minimum, M = maximum)
+centros = denormalize(data = centros, m = minimum, M = maximum)
 
 #geracao
 gen_photo = coloring(photo = photo, labels = pertinencia, centers = centros)
